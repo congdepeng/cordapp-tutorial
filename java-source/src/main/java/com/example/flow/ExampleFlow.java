@@ -1,13 +1,21 @@
 package com.example.flow;
 
+import java.security.PublicKey;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import co.paralleluniverse.fibers.Suspendable;
-import com.example.contract.IOUContract;
+import com.example.contract.IOUContract.Commands.Create;
 import com.example.model.IOU;
 import com.example.state.IOUState;
 import net.corda.core.contracts.Command;
 import net.corda.core.contracts.ContractState;
 import net.corda.core.contracts.TransactionType;
-import net.corda.core.flows.*;
+import net.corda.core.flows.FlowException;
+import net.corda.core.flows.FlowLogic;
+import net.corda.core.flows.InitiatedBy;
+import net.corda.core.flows.InitiatingFlow;
+import net.corda.core.flows.StartableByRPC;
 import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.Party;
 import net.corda.core.transactions.SignedTransaction;
@@ -18,18 +26,24 @@ import net.corda.flows.CollectSignaturesFlow;
 import net.corda.flows.FinalityFlow;
 import net.corda.flows.SignTransactionFlow;
 
-import java.util.stream.Collectors;
-
 import static net.corda.core.contracts.ContractsDSL.requireThat;
 
 /**
  * This flow allows two parties (the [Initiator] and the [Acceptor]) to come to an agreement about the IOU encapsulated
  * within an [IOUState].
+ *
+ * 这个工作流是2方间的借款行为封装，产出是 [IOUState]
+ *
  * <p>
  * In our simple example, the [Acceptor] always accepts a valid IOU.
+ * 演示作用，[Acceptor]总是接受
+ *
  * <p>
  * These flows have deliberately been implemented by using only the call() method for ease of understanding. In
  * practice we would recommend splitting up the various stages of the flow into sub-routines.
+ *
+ *
+ *
  * <p>
  * All methods called within the [FlowLogic] sub-class need to be annotated with the @Suspendable annotation.
  */
@@ -44,24 +58,29 @@ public class ExampleFlow {
         // The progress tracker checkpoints each stage of the flow and outputs the specified messages when each
         // checkpoint is reached in the code. See the 'progressTracker.currentStep' expressions within the call()
         // function.
+
         private final ProgressTracker progressTracker = new ProgressTracker(
-                GENERATING_TRANSACTION,
-                VERIFYING_TRANSACTION,
-                SIGNING_TRANSACTION,
-                GATHERING_SIGS,
-                FINALISING_TRANSACTION
+            GENERATING_TRANSACTION,
+            VERIFYING_TRANSACTION,
+            SIGNING_TRANSACTION,
+            GATHERING_SIGS,
+            FINALISING_TRANSACTION
         );
 
         private static final Step GENERATING_TRANSACTION = new Step("Generating transaction based on new IOU.");
         private static final Step VERIFYING_TRANSACTION = new Step("Verifying contract constraints.");
         private static final Step SIGNING_TRANSACTION = new Step("Signing transaction with our private key.");
         private static final Step GATHERING_SIGS = new Step("Gathering the counterparty's signature.") {
-            @Override public ProgressTracker childProgressTracker() {
+            @Override
+            public ProgressTracker childProgressTracker() {
                 return CollectSignaturesFlow.Companion.tracker();
             }
         };
-        private static final Step FINALISING_TRANSACTION = new Step("Obtaining notary signature and recording transaction.") {
-            @Override public ProgressTracker childProgressTracker() {
+
+        private static final Step FINALISING_TRANSACTION = new Step(
+            "Obtaining notary signature and recording transaction.") {
+            @Override
+            public ProgressTracker childProgressTracker() {
                 return FinalityFlow.Companion.tracker();
             }
         };
@@ -88,10 +107,18 @@ public class ExampleFlow {
             // Stage 1.
             progressTracker.setCurrentStep(GENERATING_TRANSACTION);
             // Generate an unsigned transaction.
-            IOUState iouState = new IOUState(new IOU(iouValue), getServiceHub().getMyInfo().getLegalIdentity(), otherParty);
-            final Command txCommand = new Command(new IOUContract.Commands.Create(),
-                    iouState.getParticipants().stream().map(AbstractParty::getOwningKey).collect(Collectors.toList()));
-            final TransactionBuilder txBuilder = new TransactionType.General.Builder(notary).withItems(iouState, txCommand);
+
+            // 关键3要数，谁向谁借多少钱
+            IOUState iouState = new IOUState(new IOU(iouValue), getServiceHub().getMyInfo().getLegalIdentity(),
+                otherParty);
+
+            Create value = new Create();
+            List<PublicKey> collect = iouState.getParticipants().stream().map(AbstractParty::getOwningKey).collect(
+                Collectors.toList());
+            final Command txCommand = new Command(value, collect);
+
+            final TransactionBuilder txBuilder = new TransactionType.General.Builder(notary).withItems(iouState,
+                txCommand);
 
             // Stage 2.
             progressTracker.setCurrentStep(VERIFYING_TRANSACTION);
@@ -107,7 +134,7 @@ public class ExampleFlow {
             progressTracker.setCurrentStep(GATHERING_SIGS);
             // Send the state to the counterparty, and receive it back with their signature.
             final SignedTransaction fullySignedTx = subFlow(
-                    new CollectSignaturesFlow(partSignedTx, CollectSignaturesFlow.Companion.tracker()));
+                new CollectSignaturesFlow(partSignedTx, CollectSignaturesFlow.Companion.tracker()));
 
             // Stage 5.
             progressTracker.setCurrentStep(FINALISING_TRANSACTION);
@@ -138,7 +165,7 @@ public class ExampleFlow {
                     requireThat(require -> {
                         ContractState output = stx.getTx().getOutputs().get(0).getData();
                         require.using("This must be an IOU transaction.", output instanceof IOUState);
-                        IOUState iou = (IOUState) output;
+                        IOUState iou = (IOUState)output;
                         require.using("The IOU's value can't be too high.", iou.getIOU().getValue() < 100);
                         return null;
                     });

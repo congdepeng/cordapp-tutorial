@@ -56,9 +56,12 @@ dependencies {
     // Specify your cordapp's dependencies below, including dependent cordapps
 }
 
+// 部署节点
 task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
+
     directory "./build/nodes"
     networkMap "CN=Controller,O=R3,OU=corda,L=London,C=UK"
+
     node {
         name "CN=Controller,O=R3,OU=corda,L=London,C=UK"
         advertisedServices = ["corda.notary.validating"]
@@ -67,6 +70,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         webPort 10004
         cordapps = []
     }
+
     node {
         name "CN=NodeA,O=NodeA,L=London,C=UK"
         advertisedServices = []
@@ -76,6 +80,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         cordapps = []
         rpcUsers = [[ user: "user1", "password": "test", "permissions": []]]
     }
+
     node {
         name "CN=NodeB,O=NodeB,L=New York,C=US"
         advertisedServices = []
@@ -85,6 +90,7 @@ task deployNodes(type: net.corda.plugins.Cordform, dependsOn: ['jar']) {
         cordapps = []
         rpcUsers = [[ user: "user1", "password": "test", "permissions": []]]
     }
+
     node {
         name "CN=NodeC,O=NodeC,L=Paris,C=FR"
         advertisedServices = []

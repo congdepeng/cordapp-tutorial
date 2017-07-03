@@ -71,3 +71,8 @@ crashlytics-build.properties
 
 # docs related
 docs/virtualenv/
+.idea/markdown-navigator/
+.idea/modules/
+build/
+java-source/build/
+kotlin-source/build/

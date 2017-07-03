@@ -1,5 +1,8 @@
 package com.example.client;
 
+import java.util.List;
+import java.util.concurrent.ExecutionException;
+
 import com.example.state.IOUState;
 import com.google.common.net.HostAndPort;
 import kotlin.Pair;
@@ -12,21 +15,26 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import rx.Observable;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
-
 /**
  * Demonstration of using the CordaRPCClient to connect to a Corda Node and
  * steam some State data from the node.
+ *
+ *
+ *
  */
 public class ExampleClientRPC {
+
+
+
     public static void main(String[] args) throws ActiveMQException, InterruptedException, ExecutionException {
         if (args.length != 1) {
             throw new IllegalArgumentException("Usage: ExampleClientRPC <node address>");
         }
 
         final Logger logger = LoggerFactory.getLogger(ExampleClientRPC.class);
+
         final HostAndPort nodeAddress = HostAndPort.fromString(args[0]);
+
         final CordaRPCClient client = new CordaRPCClient(nodeAddress, null, CordaRPCClientConfiguration.getDefault());
 
         // Can be amended in the com.example.Main file.
@@ -35,6 +43,8 @@ public class ExampleClientRPC {
         // Grab all signed transactions and all future signed transactions.
         final Pair<List<SignedTransaction>, Observable<SignedTransaction>> txsAndFutureTxs =
                 proxy.verifiedTransactions();
+
+
         final List<SignedTransaction> txs = txsAndFutureTxs.getFirst();
         final Observable<SignedTransaction> futureTxs = txsAndFutureTxs.getSecond();
 

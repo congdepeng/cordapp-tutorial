@@ -1,17 +1,17 @@
 package com.example.state;
 
+import java.security.PublicKey;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Stream;
+
 import com.example.contract.IOUContract;
 import com.example.model.IOU;
 import net.corda.core.contracts.LinearState;
 import net.corda.core.contracts.UniqueIdentifier;
 import net.corda.core.identity.AbstractParty;
 import net.corda.core.identity.Party;
-
-import java.security.PublicKey;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 import static net.corda.core.crypto.CryptoUtils.getKeys;
@@ -24,10 +24,17 @@ import static net.corda.core.crypto.CryptoUtils.getKeys;
  * A state must implement [ContractState] or one of its descendants.
  */
 public class IOUState implements LinearState {
-    private final IOU iou;
+
+
     private final Party sender;
     private final Party recipient;
+
+
+    private final IOU iou;
     private final UniqueIdentifier linearId;
+
+
+
     private final IOUContract contract = new IOUContract();
 
     /**
